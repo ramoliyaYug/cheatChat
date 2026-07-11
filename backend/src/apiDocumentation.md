@@ -122,6 +122,57 @@
 
 ---
 
+### 1.5 General AI Conversation - `/ai/chat`
+
+| Field | Value |
+|-------|-------|
+| **Method** | `POST` |
+| **URL** | `https://bwkwmpi8ek.execute-api.ap-south-1.amazonaws.com/dev/ai/chat` |
+| **Headers** | `Content-Type: application/json` |
+| **Auth** | **None (Public Endpoint)** |
+
+**Body** (raw JSON):
+```json
+{
+  "prompt": "Explain binary search."
+}
+```
+
+**Expected Response** (200):
+```json
+{
+  "reply": "Binary search is an efficient algorithm for finding an item from a sorted list of items..."
+}
+```
+
+---
+
+### 1.6 Solve/Improve Source File - `/ai/file`
+
+| Field | Value |
+|-------|-------|
+| **Method** | `POST` |
+| **URL** | `https://bwkwmpi8ek.execute-api.ap-south-1.amazonaws.com/dev/ai/file` |
+| **Headers** | `Content-Type: application/json` |
+| **Auth** | **None (Public Endpoint)** |
+
+**Body** (raw JSON):
+```json
+{
+  "filename": "app.js",
+  "content": "console.log('Hello');"
+}
+```
+
+**Expected Response** (200):
+```json
+{
+  "content": "console.log('Hello');"
+}
+```
+
+---
+
 ## Part 2 - WebSocket API Tests
 
 ### 2.1 Connect as "alice"
@@ -242,10 +293,129 @@ In **bob's** WebSocket tab, send:
 
 ---
 
-### 2.7 Disconnect
+### 2.7 Request Global History
+
+Send the following payload:
+
+```json
+{
+  "action": "history",
+  "type": "global",
+  "limit": 50
+}
+```
+
+**Expected Response:**
+```json
+{
+  "event": "history",
+  "type": "global",
+  "messages": [
+    {
+      "sender": "alice",
+      "text": "Hello everyone! This is alice.",
+      "timestamp": 1752054000000
+    }
+  ]
+}
+```
+
+**Notes:**
+- Returns newest messages from the global room.
+- Default limit is 50.
+
+---
+
+### 2.8 Request Private History
+
+Send the following payload:
+
+```json
+{
+  "action": "history",
+  "type": "private",
+  "with": "bob",
+  "limit": 50
+}
+```
+
+**Expected Response:**
+```json
+{
+  "event": "history",
+  "type": "private",
+  "with": "bob",
+  "messages": [
+    {
+      "sender": "alice",
+      "text": "Hey Bob, this is a secret message!",
+      "timestamp": 1752054002000
+    }
+  ]
+}
+```
+
+**Notes:**
+- Conversation history is returned in chronological order.
+- Generates a deterministic key from usernames to fetch history.
+
+---
+
+### 2.9 Request Online Users
+
+Send the following payload:
+
+```json
+{
+  "action": "online"
+}
+```
+
+**Expected Response:**
+```json
+{
+  "event": "online",
+  "users": [
+    "alice",
+    "bob"
+  ]
+}
+```
+
+**Notes:**
+- Only currently connected users with active connections are returned.
+
+---
+
+### 2.10 Request Registered Users
+
+Send the following payload:
+
+```json
+{
+  "action": "users"
+}
+```
+
+**Expected Response:**
+```json
+{
+  "event": "users",
+  "users": [
+    "alice",
+    "bob",
+    "charlie"
+  ]
+}
+```
+
+**Notes:**
+- Returns every registered account from the Users database table.
+
+---
+
+### 2.11 Disconnect
 
 1. In alice's WebSocket tab, click **Disconnect**
 2. Verify bob can still send global messages (only bob receives them now)
 3. Disconnect bob
-
----
