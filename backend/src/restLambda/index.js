@@ -16,7 +16,7 @@ const SALT_ROUNDS = 10;
 
 // ─── Gemini AI Configuration ─────────────────────────────────────────────────
 
-const GEMINI_API_KEYS = ["AIzaSyCL0YmldbwWpcv_DvhoZOy2MqGuWd-k8zg"];
+const GEMINI_API_KEYS = [""];
 const GEMINI_MODEL = "gemini-2.5-flash";
 const GEMINI_BASE_URL = "generativelanguage.googleapis.com";
 
@@ -386,6 +386,8 @@ Instructions:
 - Output ONLY the updated file content.
 - Do NOT wrap your answer inside markdown code blocks.
 - Do NOT add any explanation before or after the code.
+- Do NOT add any comments in code.
+- And if comments are alreadt present in the file then do not remove keep it.
 - Just return the raw updated file content.`;
 
   try {
