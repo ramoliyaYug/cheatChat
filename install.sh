@@ -66,8 +66,7 @@ echo -e "     ${DIM}Use this if you already have global npm packages working${RE
 echo ""
 echo -e "  ${PURPLE}3)${RESET} ${BOLD}Cancel${RESET}"
 echo ""
-
-read -rp "  $(echo -e "${PURPLE}›${RESET}") Pick an option [1/2/3]: " CHOICE
+read -rp "  $(echo -e "${PURPLE}›${RESET}") Pick an option [1/2/3]: " CHOICE </dev/tty
 
 echo ""
 
