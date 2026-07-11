@@ -1,6 +1,6 @@
 {
   "name": "cheatchat",
-  "version": "1.2.1",
+  "version": "1.2.3",
   "description": "",
   "bin": {
     "chat": "./bin/chat.js"

@@ -6,7 +6,7 @@ export const WS_API_URL = "wss://lhyew4zkm2.execute-api.ap-south-1.amazonaws.com
 // ─── App Metadata ────────────────────────────────────────────────────────────
 
 export const APP_NAME = "CheatChat";
-export const APP_VERSION = "1.0.0";
+export const APP_VERSION = "1.2.3";
 export const APP_DESCRIPTION = "A minimal terminal chat app powered by AWS.";
 
 // ─── Chat Modes ──────────────────────────────────────────────────────────────
