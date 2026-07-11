@@ -5,6 +5,8 @@ import { loginCommand } from "./commands/login.js";
 import { logoutCommand } from "./commands/logout.js";
 import { helpCommand } from "./commands/help.js";
 import { connectCommand } from "./commands/connect.js";
+import { aiCommand } from "./commands/ai.js";
+import { solveCommand } from "./commands/solve.js";
 import { whoamiFlow } from "./auth/whoami.js";
 import { APP_NAME, APP_VERSION, APP_DESCRIPTION } from "./utils/constants.js";
 
@@ -65,6 +67,20 @@ program
   .action(() => {
     showBanner();
     helpCommand();
+  });
+
+program
+  .command("ai")
+  .description("Enter interactive AI chat mode")
+  .action(async () => {
+    await aiCommand();
+  });
+
+program
+  .command("solve <file>")
+  .description("Solve/improve a source file using AI")
+  .action(async (file) => {
+    await solveCommand(file);
   });
 
 // ─── Default (no command) ────────────────────────────────────────────────────

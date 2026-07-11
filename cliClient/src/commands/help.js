@@ -39,4 +39,17 @@ export function helpCommand() {
   }
 
   printBlank();
+  console.log(`  ${whiteBold("AI Tools:")}`);
+  printBlank();
+
+  const aiCommands = [
+    ["chat ai", "Interactive AI chat"],
+    ["chat solve <file>", "Solve/improve a file with AI"],
+  ];
+
+  for (const [cmd, desc] of aiCommands) {
+    console.log(`  ${brand(cmd.padEnd(20))} ${muted(desc)}`);
+  }
+
+  printBlank();
 }

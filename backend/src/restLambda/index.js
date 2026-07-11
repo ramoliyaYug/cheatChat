@@ -5,6 +5,7 @@ const { DynamoDBDocumentClient, PutCommand, GetCommand, UpdateCommand } = requir
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { z } = require("zod");
+const https = require("https");
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
@@ -12,6 +13,12 @@ const JWT_SECRET = "cheatchat_super_secret_key_2026";
 const JWT_EXPIRES_IN = "7d";
 const USERS_TABLE = "Users";
 const SALT_ROUNDS = 10;
+
+// ─── Gemini AI Configuration ─────────────────────────────────────────────────
+
+const GEMINI_API_KEYS = ["AIzaSyCL0YmldbwWpcv_DvhoZOy2MqGuWd-k8zg"];
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_BASE_URL = "generativelanguage.googleapis.com";
 
 // ─── DynamoDB Client ─────────────────────────────────────────────────────────
 
@@ -235,6 +242,165 @@ async function handleMe(event) {
   return success({ user });
 }
 
+// ─── Gemini AI Helpers ───────────────────────────────────────────────────────
+
+/*
+- Pick a random API key from the pool.
+*/
+function getRandomApiKey() {
+  return GEMINI_API_KEYS[Math.floor(Math.random() * GEMINI_API_KEYS.length)];
+}
+
+/*
+- Call Gemini API using native https.
+- Returns the text response from Gemini.
+*/
+function callGemini(prompt) {
+  return new Promise((resolve, reject) => {
+    const apiKey = getRandomApiKey();
+    const path = `/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+
+    const requestBody = JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 8192,
+      },
+    });
+
+    const options = {
+      hostname: GEMINI_BASE_URL,
+      path,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(requestBody),
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.error) {
+            reject(new Error(parsed.error.message || "Gemini API error"));
+            return;
+          }
+          const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          resolve(text);
+        } catch (e) {
+          reject(new Error("Failed to parse Gemini response"));
+        }
+      });
+    });
+
+    req.on("error", reject);
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error("Gemini API request timed out"));
+    });
+
+    req.write(requestBody);
+    req.end();
+  });
+}
+
+/*
+- Strip markdown code fences from a string.
+- Handles ```language\n...\n``` and ```\n...\n```
+*/
+function stripCodeFences(text) {
+  const trimmed = text.trim();
+  // Match opening ```<optional language> and closing ```
+  const fenceRegex = /^```[\w]*\n?([\s\S]*?)\n?```$/;
+  const match = trimmed.match(fenceRegex);
+  if (match) {
+    return match[1];
+  }
+  return trimmed;
+}
+
+// ─── AI Route Handlers ───────────────────────────────────────────────────────
+
+/*
+- POST /ai/chat — General AI conversation. No auth required.
+*/
+async function handleAiChat(event) {
+  let body;
+  try {
+    body = JSON.parse(event.body || "{}");
+  } catch {
+    return error(400, "Invalid JSON body");
+  }
+
+  const { prompt } = body;
+  if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
+    return error(400, "'prompt' is required");
+  }
+
+  try {
+    const reply = await callGemini(prompt.trim());
+    console.log(`[AI:CHAT] Prompt: "${prompt.trim().substring(0, 50)}..."`);
+    return response(200, { reply });
+  } catch (err) {
+    console.error("[AI:CHAT] Gemini error:", err.message);
+    return error(502, `AI service error: ${err.message}`);
+  }
+}
+
+/*
+- POST /ai/file — Solve/improve an entire source file. No auth required.
+*/
+async function handleAiFile(event) {
+  let body;
+  try {
+    body = JSON.parse(event.body || "{}");
+  } catch {
+    return error(400, "Invalid JSON body");
+  }
+
+  const { filename, content } = body;
+
+  if (!filename || typeof filename !== "string") {
+    return error(400, "'filename' is required");
+  }
+  if (!content || typeof content !== "string") {
+    return error(400, "'content' (file contents) is required");
+  }
+
+  const filePrompt = `You are a senior software engineer. You are given a file named "${filename}".
+
+Here is the complete file content:
+
+${content}
+
+Instructions:
+- Fix any bugs, improve code quality, and optimize where possible.
+- Return the ENTIRE updated file.
+- Never omit any code.
+- Never shorten the file.
+- Preserve all imports unless they are truly unnecessary.
+- Preserve formatting style.
+- Output ONLY the updated file content.
+- Do NOT wrap your answer inside markdown code blocks.
+- Do NOT add any explanation before or after the code.
+- Just return the raw updated file content.`;
+
+  try {
+    let result = await callGemini(filePrompt);
+    // Safety: strip code fences if Gemini accidentally returns them
+    result = stripCodeFences(result);
+
+    console.log(`[AI:FILE] Processed: ${filename} (${content.length} chars → ${result.length} chars)`);
+    return response(200, { content: result });
+  } catch (err) {
+    console.error("[AI:FILE] Gemini error:", err.message);
+    return error(502, `AI service error: ${err.message}`);
+  }
+}
+
 // ─── Router ──────────────────────────────────────────────────────────────────
 
 function routeRequest(event) {
@@ -252,6 +418,8 @@ function routeRequest(event) {
     return response(200, {});
   }
 
+  // ─── Auth Routes ─────────────────────────────────────────────────────
+
   if (method === "POST" && path === "/auth/signup") {
     return handleSignup(event);
   }
@@ -262,6 +430,16 @@ function routeRequest(event) {
 
   if (method === "GET" && path === "/auth/me") {
     return handleMe(event);
+  }
+
+  // ─── AI Routes (Public — No Auth) ────────────────────────────────────
+
+  if (method === "POST" && path === "/ai/chat") {
+    return handleAiChat(event);
+  }
+
+  if (method === "POST" && path === "/ai/file") {
+    return handleAiFile(event);
   }
 
   return error(404, `Route not found: ${method} ${path}`);

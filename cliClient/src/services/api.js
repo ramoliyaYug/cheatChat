@@ -53,6 +53,34 @@ export async function getMe(token) {
   }
 }
 
+// ─── AI Endpoints (Public — No Auth Required) ───────────────────────────────
+
+/**
+ * Send a prompt to the AI chat endpoint.
+ * Returns { reply } or { error }
+ */
+export async function aiChat(prompt) {
+  try {
+    const { data } = await api.post("/ai/chat", { prompt }, { timeout: 60000 });
+    return data;
+  } catch (err) {
+    return extractError(err);
+  }
+}
+
+/**
+ * Send a file to the AI file solver endpoint.
+ * Returns { content } or { error }
+ */
+export async function aiFile(filename, content) {
+  try {
+    const { data } = await api.post("/ai/file", { filename, content }, { timeout: 60000 });
+    return data;
+  } catch (err) {
+    return extractError(err);
+  }
+}
+
 // ─── Error Extraction ────────────────────────────────────────────────────────
 
 function extractError(err) {
