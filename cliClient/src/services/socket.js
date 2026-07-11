@@ -70,6 +70,37 @@ export function sendPrivateMessage(ws, to, text) {
 }
 
 /**
+ * Request chat history (global or private).
+ */
+export function requestHistory(ws, type, withUser, limit = 50) {
+  if (ws.readyState !== WebSocket.OPEN) return false;
+  const payload = { action: "history", type, limit };
+  if (type === "private" && withUser) {
+    payload.with = withUser;
+  }
+  ws.send(JSON.stringify(payload));
+  return true;
+}
+
+/**
+ * Request the list of currently online users.
+ */
+export function requestOnline(ws) {
+  if (ws.readyState !== WebSocket.OPEN) return false;
+  ws.send(JSON.stringify({ action: "online" }));
+  return true;
+}
+
+/**
+ * Request the list of all registered users.
+ */
+export function requestUsers(ws) {
+  if (ws.readyState !== WebSocket.OPEN) return false;
+  ws.send(JSON.stringify({ action: "users" }));
+  return true;
+}
+
+/**
  * Close the WebSocket connection gracefully.
  */
 export function closeSocket(ws) {

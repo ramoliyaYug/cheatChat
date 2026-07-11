@@ -4,6 +4,7 @@ import { connectWebSocket } from "../websocket/connect.js";
 import { disconnectWebSocket } from "../websocket/disconnect.js";
 import { handleIncomingMessage } from "../websocket/receiver.js";
 import { sendMessage } from "../websocket/sender.js";
+import { requestHistory, requestOnline, requestUsers } from "../services/socket.js";
 import { showChatHeader } from "../ui/banner.js";
 import {
   printChatHelp,
@@ -109,7 +110,12 @@ export async function connectCommand() {
   showChatHeader(username, chatMode, dmTarget);
   printBlank();
   printSystem("You are in Global Chat. Type a message or /help for commands.");
+  printSystem("Loading chat history...");
   printBlank();
+
+  // ─── Auto-load global history on connect ─────────────────────────────
+
+  requestHistory(ws, "global");
 
   // ─── Start Interactive Readline ──────────────────────────────────────
 
@@ -141,6 +147,8 @@ export async function connectCommand() {
           chatMode = CHAT_MODE.GLOBAL;
           dmTarget = null;
           printModeSwitch("global");
+          // Auto-load global history on mode switch
+          requestHistory(ws, "global");
           refreshPrompt();
           return;
 
@@ -159,9 +167,30 @@ export async function connectCommand() {
           chatMode = CHAT_MODE.PRIVATE;
           dmTarget = target;
           printModeSwitch("private", target);
+          // Auto-load private history when switching to DM
+          requestHistory(ws, "private", target);
           refreshPrompt();
           return;
         }
+
+        case "/history":
+          if (chatMode === CHAT_MODE.GLOBAL) {
+            requestHistory(ws, "global");
+          } else if (chatMode === CHAT_MODE.PRIVATE && dmTarget) {
+            requestHistory(ws, "private", dmTarget);
+          }
+          rl.prompt();
+          return;
+
+        case "/online":
+          requestOnline(ws);
+          rl.prompt();
+          return;
+
+        case "/users":
+          requestUsers(ws);
+          rl.prompt();
+          return;
 
         case "/help":
           printChatHelp();

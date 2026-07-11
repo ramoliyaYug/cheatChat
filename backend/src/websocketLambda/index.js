@@ -8,6 +8,7 @@ const {
   QueryCommand,
   GetCommand,
   UpdateCommand,
+  ScanCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const {
   ApiGatewayManagementApiClient,
@@ -180,7 +181,6 @@ async function getAllConnections() {
 - Scan all connections (fallback -> full table scan)
 */
 async function scanAllConnections() {
-  const { ScanCommand } = require("@aws-sdk/lib-dynamodb");
   const items = [];
   let lastKey = undefined;
 
@@ -188,6 +188,28 @@ async function scanAllConnections() {
     const result = await ddb.send(
       new ScanCommand({
         TableName: CONNECTIONS_TABLE,
+        ExclusiveStartKey: lastKey,
+      })
+    );
+    items.push(...(result.Items || []));
+    lastKey = result.LastEvaluatedKey;
+  } while (lastKey);
+
+  return items;
+}
+
+/*
+- Scan all users from the Users table.
+*/
+async function scanAllUsers() {
+  const items = [];
+  let lastKey = undefined;
+
+  do {
+    const result = await ddb.send(
+      new ScanCommand({
+        TableName: USERS_TABLE,
+        ProjectionExpression: "username",
         ExclusiveStartKey: lastKey,
       })
     );
@@ -481,6 +503,157 @@ async function handlePrivateMessage(event, senderConnectionId, sender, receiver,
 }
 
 /*
+- history -> Return chat history (global or private).
+*/
+async function handleHistory(event) {
+  const connectionId = event.requestContext.connectionId;
+
+  const conn = await getConnection(connectionId);
+  if (!conn) {
+    return { statusCode: 401, body: "Not authenticated" };
+  }
+
+  let body;
+  try {
+    body = JSON.parse(event.body || "{}");
+  } catch {
+    await sendToConnection(event, connectionId, {
+      event: "error",
+      message: "Invalid JSON",
+    });
+    return { statusCode: 400, body: "Invalid JSON" };
+  }
+
+  const { type } = body;
+  const limit = Math.min(Math.max(parseInt(body.limit) || 50, 1), 100);
+
+  if (type === "global") {
+    const result = await ddb.send(
+      new QueryCommand({
+        TableName: GLOBAL_MESSAGES_TABLE,
+        KeyConditionExpression: "roomId = :rid",
+        ExpressionAttributeValues: { ":rid": GLOBAL_ROOM_ID },
+        ScanIndexForward: false,
+        Limit: limit,
+      })
+    );
+
+    const messages = (result.Items || []).reverse().map((item) => ({
+      sender: item.sender,
+      text: item.message,
+      timestamp: item.timestamp,
+    }));
+
+    await sendToConnection(event, connectionId, {
+      event: "history",
+      type: "global",
+      messages,
+    });
+
+    console.log(`[HISTORY] Global -> ${conn.username} (${messages.length} messages)`);
+    return { statusCode: 200, body: "History sent" };
+  }
+
+  if (type === "private") {
+    const withUser = body.with;
+    if (!withUser || typeof withUser !== "string" || withUser.trim().length === 0) {
+      await sendToConnection(event, connectionId, {
+        event: "error",
+        message: "'with' field is required for private history",
+      });
+      return { statusCode: 400, body: "Missing 'with'" };
+    }
+
+    const conversationId = makeConversationId(conn.username, withUser.trim());
+
+    const result = await ddb.send(
+      new QueryCommand({
+        TableName: PRIVATE_MESSAGES_TABLE,
+        KeyConditionExpression: "conversationId = :cid",
+        ExpressionAttributeValues: { ":cid": conversationId },
+        ScanIndexForward: false,
+        Limit: limit,
+      })
+    );
+
+    const messages = (result.Items || []).reverse().map((item) => ({
+      sender: item.sender,
+      text: item.message,
+      timestamp: item.timestamp,
+    }));
+
+    await sendToConnection(event, connectionId, {
+      event: "history",
+      type: "private",
+      with: withUser.trim(),
+      messages,
+    });
+
+    console.log(`[HISTORY] Private ${conn.username}#${withUser.trim()} -> (${messages.length} messages)`);
+    return { statusCode: 200, body: "History sent" };
+  }
+
+  await sendToConnection(event, connectionId, {
+    event: "error",
+    message: "History type must be 'global' or 'private'",
+  });
+  return { statusCode: 400, body: "Invalid history type" };
+}
+
+/*
+- online -> Return list of currently connected usernames.
+*/
+async function handleOnline(event) {
+  const connectionId = event.requestContext.connectionId;
+
+  const conn = await getConnection(connectionId);
+  if (!conn) {
+    return { statusCode: 401, body: "Not authenticated" };
+  }
+
+  const connections = await scanAllConnections();
+
+  // Extract unique usernames
+  const usernameSet = new Set();
+  for (const c of connections) {
+    if (c.username) usernameSet.add(c.username);
+  }
+
+  const users = [...usernameSet].sort();
+
+  await sendToConnection(event, connectionId, {
+    event: "online",
+    users,
+  });
+
+  console.log(`[ONLINE] -> ${conn.username} (${users.length} users online)`);
+  return { statusCode: 200, body: "Online list sent" };
+}
+
+/*
+- users -> Return list of all registered usernames.
+*/
+async function handleUsers(event) {
+  const connectionId = event.requestContext.connectionId;
+
+  const conn = await getConnection(connectionId);
+  if (!conn) {
+    return { statusCode: 401, body: "Not authenticated" };
+  }
+
+  const allUsers = await scanAllUsers();
+  const users = allUsers.map((u) => u.username).sort();
+
+  await sendToConnection(event, connectionId, {
+    event: "users",
+    users,
+  });
+
+  console.log(`[USERS] -> ${conn.username} (${users.length} registered)`);
+  return { statusCode: 200, body: "Users list sent" };
+}
+
+/*
 - $default -> Handle unknown/unsupported routes.
 */
 async function handleDefault(event) {
@@ -488,7 +661,7 @@ async function handleDefault(event) {
 
   await sendToConnection(event, connectionId, {
     event: "error",
-    message: "Unknown action. Supported actions: message",
+    message: "Unknown action. Supported actions: message, history, online, users",
   });
 
   return { statusCode: 200, body: "Unknown route" };
@@ -506,6 +679,12 @@ function dispatch(event) {
       return handleDisconnect(event);
     case "message":
       return handleMessage(event);
+    case "history":
+      return handleHistory(event);
+    case "online":
+      return handleOnline(event);
+    case "users":
+      return handleUsers(event);
     case "$default":
     default:
       return handleDefault(event);

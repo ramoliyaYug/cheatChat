@@ -13,6 +13,7 @@ import {
   warning,
   accent,
   brand,
+  white,
   whiteBold,
   dim,
 } from "./color.js";
@@ -93,6 +94,9 @@ export function printChatHelp() {
   console.log(`  ${whiteBold("Chat Commands:")}`);
   console.log(`  ${brand("/global")}          ${muted("Switch to global chat")}`);
   console.log(`  ${brand("/dm <username>")}   ${muted("Switch to private messaging")}`);
+  console.log(`  ${brand("/history")}         ${muted("Load message history for current chat")}`);
+  console.log(`  ${brand("/online")}          ${muted("Show currently connected users")}`);
+  console.log(`  ${brand("/users")}           ${muted("Show all registered users")}`);
   console.log(`  ${brand("/help")}            ${muted("Show this help menu")}`);
   console.log(`  ${brand("/exit")}            ${muted("Disconnect and exit")}`);
   console.log();
@@ -107,6 +111,66 @@ export function printModeSwitch(mode, target) {
     printSystem(`Switched to ${accent("🌍 Global Chat")} — messages go to everyone`);
   } else {
     printSystem(`Switched to ${accent(`🔒 DM → ${whiteBold(target)}`)} — messages are private`);
+  }
+  console.log();
+}
+
+/**
+ * Print a history header.
+ */
+export function printHistoryHeader(type, target) {
+  console.log();
+  const sep = muted("─".repeat(50));
+  console.log(`  ${sep}`);
+  if (type === "global") {
+    console.log(`  ${systemTag(" HISTORY ")} ${accent("🌍 Global Chat History")}`);
+  } else {
+    console.log(`  ${systemTag(" HISTORY ")} ${accent(`🔒 DM History with ${whiteBold(target)}`)}`);
+  }
+  console.log(`  ${sep}`);
+}
+
+/**
+ * Print a history footer.
+ */
+export function printHistoryFooter(count) {
+  const sep = muted("─".repeat(50));
+  console.log(`  ${sep}`);
+  console.log(`  ${muted(`${count} message${count !== 1 ? "s" : ""} loaded`)}`);
+  console.log(`  ${sep}`);
+  console.log();
+}
+
+/**
+ * Print online users list.
+ */
+export function printOnlineUsers(users) {
+  console.log();
+  console.log(`  ${whiteBold("Online Users")} ${muted(`(${users.length})`)}`);
+  console.log(`  ${muted("─".repeat(30))}`);
+  if (users.length === 0) {
+    console.log(`  ${muted("No users online")}`);
+  } else {
+    for (const u of users) {
+      console.log(`  ${success("●")} ${accent(u)}`);
+    }
+  }
+  console.log();
+}
+
+/**
+ * Print all registered users list.
+ */
+export function printRegisteredUsers(users) {
+  console.log();
+  console.log(`  ${whiteBold("Registered Users")} ${muted(`(${users.length})`)}`);
+  console.log(`  ${muted("─".repeat(30))}`);
+  if (users.length === 0) {
+    console.log(`  ${muted("No users found")}`);
+  } else {
+    for (const u of users) {
+      console.log(`  ${brand("•")} ${white(u)}`);
+    }
   }
   console.log();
 }

@@ -27,6 +27,9 @@ export function helpCommand() {
   const chatCommands = [
     ["/global", "Switch to global chat"],
     ["/dm <username>", "Switch to private messaging"],
+    ["/history", "Load message history"],
+    ["/online", "Show online users"],
+    ["/users", "Show all registered users"],
     ["/help", "Show chat commands"],
     ["/exit", "Disconnect and exit"],
   ];
