@@ -1,0 +1,33 @@
+{
+  "name": "cheatchat",
+  "version": "1.0.0",
+  "description": "",
+  "bin": {
+    "chat": "./bin/chat.js"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ramoliyaYug/cheatChat.git"
+  },
+  "author": "yug",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ramoliyaYug/cheatChat/issues"
+  },
+  "homepage": "https://github.com/ramoliyaYug/cheatChat#readme",
+  "dependencies": {
+    "axios": "^1.18.1",
+    "boxen": "^8.0.1",
+    "chalk": "^5.6.2",
+    "cli-table3": "^0.6.5",
+    "commander": "^15.0.0",
+    "dotenv": "^17.4.2",
+    "inquirer": "^14.0.2",
+    "ora": "^9.4.1",
+    "ws": "^8.21.0"
+  }
+}
