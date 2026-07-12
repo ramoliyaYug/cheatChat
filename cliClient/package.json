@@ -1,7 +1,7 @@
 {
   "name": "cheatchat",
-  "version": "1.2.3",
-  "description": "",
+  "version": "1.2.4",
+  "description": "A modern terminal-based chat application with global chat, private messaging, AI chat, AI-powered file solving, and a serverless AWS backend.",
   "bin": {
     "chat": "./bin/chat.js"
   },
@@ -10,11 +10,48 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [
+    "chat",
+    "terminal",
+    "cli",
+    "terminal-chat",
+    "chat-cli",
+    "messenger",
+    "messaging",
+    "chat-application",
+    "private-chat",
+    "global-chat",
+    "websocket",
+    "aws",
+    "lambda",
+    "serverless",
+    "dynamodb",
+    "api-gateway",
+    "nodejs",
+    "javascript",
+    "ai",
+    "gemini",
+    "terminal-ai",
+    "ai-chat",
+    "code-assistant",
+    "developer-tools",
+    "npm-cli",
+    "command-line",
+    "cli-app",
+    "codechef",
+    "cli-chat",
+    "cli-ai",
+    "cli-file-solver"
+  ],
+  "preferGlobal": true,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ramoliyaYug/cheatChat.git"
   },
-  "author": "yug",
+  "author": {
+    "name": "Yug Ramoliya",
+    "url": "https://github.com/ramoliyaYug"
+  },
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/ramoliyaYug/cheatChat/issues"
