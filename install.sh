@@ -105,6 +105,8 @@ case "$CHOICE" in
 
     npm install -g cheatchat
 
+    source "$PROFILE"
+
     echo ""
     echo -e "  ${GREEN}${BOLD}✓ Installation complete!${RESET}"
     echo ""
