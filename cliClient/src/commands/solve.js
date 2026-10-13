@@ -27,9 +27,11 @@ function stripCodeFences(text) {
  * Solve/improve a file using AI.
  * Reads the file, sends it to POST /ai/file, overwrites with the result.
  */
-export async function solveCommand(filePath) {
+export async function solveCommand(filePath, options = {}) {
   showBanner();
   printBlank();
+
+  const userPrompt = options.prompt || null;
 
   // Resolve the file path relative to cwd
   const resolvedPath = path.resolve(process.cwd(), filePath);
@@ -61,12 +63,15 @@ export async function solveCommand(filePath) {
 
   console.log(`  ${muted("File:")} ${filename}`);
   console.log(`  ${muted("Size:")} ${content.length} characters`);
+  if (userPrompt) {
+    console.log(`  ${muted("Prompt:")} ${userPrompt}`);
+  }
   printBlank();
 
   const spinner = createSpinner("🤖 Solving...");
   spinner.start();
 
-  const result = await aiFile(filename, content);
+  const result = await aiFile(filename, content, userPrompt);
 
   if (result.content) {
     // Strip code fences if present (client-side safety)

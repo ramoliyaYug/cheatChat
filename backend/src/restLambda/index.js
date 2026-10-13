@@ -361,7 +361,7 @@ async function handleAiFile(event) {
     return error(400, "Invalid JSON body");
   }
 
-  const { filename, content } = body;
+  const { filename, content, prompt } = body;
 
   if (!filename || typeof filename !== "string") {
     return error(400, "'filename' is required");
@@ -370,6 +370,10 @@ async function handleAiFile(event) {
     return error(400, "'content' (file contents) is required");
   }
 
+  const userInstruction = prompt && typeof prompt === "string" && prompt.trim().length > 0
+    ? prompt.trim()
+    : "";
+
   const filePrompt = `You are a senior software engineer. You are given a file named "${filename}".
 
 Here is the complete file content:
@@ -377,7 +381,7 @@ Here is the complete file content:
 ${content}
 
 Instructions:
-- Fix any bugs, improve code quality, and optimize where possible.
+- ${userInstruction}
 - Return the ENTIRE updated file.
 - Never omit any code.
 - Never shorten the file.
@@ -387,7 +391,7 @@ Instructions:
 - Do NOT wrap your answer inside markdown code blocks.
 - Do NOT add any explanation before or after the code.
 - Do NOT add any comments in code.
-- And if comments are alreadt present in the file then do not remove keep it.
+- And if comments are already present in the file then do not remove keep it.
 - Just return the raw updated file content.`;
 
   try {

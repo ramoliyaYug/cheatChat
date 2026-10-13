@@ -72,9 +72,11 @@ export async function aiChat(prompt) {
  * Send a file to the AI file solver endpoint.
  * Returns { content } or { error }
  */
-export async function aiFile(filename, content) {
+export async function aiFile(filename, content, prompt) {
   try {
-    const { data } = await api.post("/ai/file", { filename, content }, { timeout: 60000 });
+    const body = { filename, content };
+    if (prompt) body.prompt = prompt;
+    const { data } = await api.post("/ai/file", body, { timeout: 60000 });
     return data;
   } catch (err) {
     return extractError(err);

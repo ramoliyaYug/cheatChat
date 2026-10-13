@@ -79,8 +79,9 @@ program
 program
   .command("solve <file>")
   .description("Solve/improve a source file using AI")
-  .action(async (file) => {
-    await solveCommand(file);
+  .option("-p, --prompt <prompt>", "Custom instructions for the AI")
+  .action(async (file, options) => {
+    await solveCommand(file, options);
   });
 
 // ─── Default (no command) ────────────────────────────────────────────────────

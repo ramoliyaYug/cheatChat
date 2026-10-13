@@ -1,6 +1,6 @@
 {
   "name": "cheatchat",
-  "version": "1.2.4",
+  "version": "1.3.0",
   "description": "A modern terminal-based chat application with global chat, private messaging, AI chat, AI-powered file solving, and a serverless AWS backend.",
   "bin": {
     "chat": "./bin/chat.js"
